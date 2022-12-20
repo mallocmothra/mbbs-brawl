@@ -231,6 +231,10 @@ typedef struct brawl_arena_state_t {
 #define BRAWL_HACK_OFFSET_TO_STASH_DAYS_MODULE_ACTIVE (2)
 #define BRAWL_INITIAL_PLAYER_USERID_DB_FILE_LENGTH (70)
 
+#define TELECONFERENCE_USER_SUBSTATE_ENTERING_TELECONFERENCE (0)
+#define TELECONFERENCE_USER_SUBSTATE_NORMAL (1)
+#define TELECONFERENCE_USER_SUBSTATE_PRIVATE_CHAT (2)
+
 
 const struct brawl_command_table_entry brawl_command_table[BRAWL_COMMAND_COUNT] = {
     // command_name  time_to_escape_if_interrupted  can_do_when_dead_or_escaped_or_resting
@@ -621,8 +625,7 @@ void brawl_reset_player_data_for_round(int user_index) {
 
 int brawl_handle_user_input_overlay_shim(void) {
     // This should check the `brawl_handle_user_input()` result directly, without ` == 1`, but the original binary didn't do that
-    if (usrptr->substt == 1 &&  // TODO: Move to constant or use existing one
-            brawl_handle_user_input() == 1) {
+    if (usrptr->substt == TELECONFERENCE_USER_SUBSTATE_NORMAL && brawl_handle_user_input() == 1) {
         clrprf();
         prf("");
         return 1;
@@ -1616,8 +1619,7 @@ void brawl_handle_view_brawlers(void) {
     int user_num;
 
     for (user_num = 0, current_player_data_ptr = brawl_player_data_array; user_num < nterms; ++user_num, ++current_player_data_ptr) {
-        if (user[user_num].state == teleconference_module_index &&
-                user[user_num].substt == 1) {  // TODO: Move to constant or use existing one
+        if (user[user_num].state == teleconference_module_index && user[user_num].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL) {
             if (current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING) {
                 prf("%s (%s) is ", uacoff(user_num), brawl_player_rank_names[current_player_data_ptr->rank]);
                 prf("%s. ", brawl_get_hp_description(current_player_data_ptr->current_hp));
@@ -2120,8 +2122,7 @@ void brawl_output_message_to_all_brawlers(void) {
     prfmsg(TLCPMT);
 
     for (user_index = 0, current_user_ptr = user; user_index < nterms; ++user_index, ++current_user_ptr) {
-        if (current_user_ptr->state == teleconference_module_index &&
-                current_user_ptr->substt == 1 &&  // TODO: Move to constant or use existing one
+        if (current_user_ptr->state == teleconference_module_index && current_user_ptr->substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 brawl_player_data_array[user_index].player_state != BRAWL_PLAYER_STATE_NOT_BRAWLING) {
             outprf(user_index);
         }
@@ -2139,8 +2140,7 @@ void brawl_print_tc_prompt_to_all_other_brawlers(void) {
 
     for (user_index = 0, current_user_ptr = user; user_index < nterms; ++user_index, ++current_user_ptr) {
         if (usrnum != user_index &&
-                current_user_ptr->state == teleconference_module_index &&
-                current_user_ptr->substt == 1 &&  // TODO: Move to constant or use existing one
+                current_user_ptr->state == teleconference_module_index && current_user_ptr->substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 brawl_player_data_array[user_index].player_state != BRAWL_PLAYER_STATE_NOT_BRAWLING) {
             outprf(user_index);
         }
@@ -2159,8 +2159,7 @@ void brawl_output_message_to_all_but_current_and_target_brawlers(int target_user
     for (user_index = 0, current_user_ptr = user; user_index < nterms; ++user_index, ++current_user_ptr) {
         if (usrnum != user_index &&
                 user_index != target_user_index &&
-                current_user_ptr->state == teleconference_module_index &&
-                current_user_ptr->substt == 1 &&  // TODO: Move to constant or use existing one
+                current_user_ptr->state == teleconference_module_index && current_user_ptr->substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 brawl_player_data_array[user_index].player_state != BRAWL_PLAYER_STATE_NOT_BRAWLING) {
             outprf(user_index);
         }
@@ -2171,8 +2170,7 @@ void brawl_output_message_to_all_but_current_and_target_brawlers(int target_user
 
 
 void brawl_output_message_to_specified_brawler(int user_index) {
-    if (user[user_index].state == teleconference_module_index &&
-            user[user_index].substt == 1 &&  // TODO: Move to constant or use existing one
+    if (user[user_index].state == teleconference_module_index && user[user_index].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
             brawl_player_data_array[user_index].player_state != BRAWL_PLAYER_STATE_NOT_BRAWLING) {
         prfmsg(TLCPMT);
         outprf(user_index);
@@ -2191,8 +2189,7 @@ void brawl_update(void) {
     if (brawl_arena_state.game_state == BRAWL_GAME_STATE_ROUND_IN_PROGRESS) {
         for (usrnum = 0, brawl_current_player_data_ptr = brawl_player_data_array; usrnum < nterms; ++usrnum, ++brawl_current_player_data_ptr) {
             if (brawl_current_player_data_ptr->userid[0] != '\0' &&
-                    user[usrnum].state == teleconference_module_index &&
-                    user[usrnum].substt == 1 &&  // TODO: Move to constant or use existing one
+                    user[usrnum].state == teleconference_module_index && user[usrnum].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                     brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING) {
                 ++current_active_brawler_count;
 
@@ -2415,8 +2412,7 @@ void brawl_handle_exploding_dynamite(void) {
 
     for (user_index = 0, current_player_data_ptr = brawl_player_data_array; user_index < nterms; ++user_index, ++current_player_data_ptr) {
         if (current_player_data_ptr->userid[0] != '\0' &&
-                user[user_index].state == teleconference_module_index &&
-                user[user_index].substt == 1 &&  // TODO: Move to constant or use existing one
+                user[user_index].state == teleconference_module_index && user[user_index].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING) {
 
             if (user_index == brawl_dynamite_target_player_index) {
@@ -2463,8 +2459,7 @@ int brawl_get_user_count_matching_name(char* name_to_match) {
         othuap = uacoff(othusn);
 
         if (SUPLON <= othusp->class &&
-                othusp->state == teleconference_module_index &&
-                user[othusn].substt == 1 &&  // TODO: Move to constant or use existing one
+                othusp->state == teleconference_module_index && user[othusn].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 sameto(name_to_match, othuap->userid)) {
             last_user_index_matching_name = othusn;
 
@@ -2609,8 +2604,7 @@ void brawl_print_round_result(void) {
                     current_deadest_player_index = usrnum;
                 }
             } else {
-                if (user[usrnum].state == teleconference_module_index &&
-                        user[usrnum].substt == 1) {  // TODO: Move to constant or use existing one
+                if (user[usrnum].state == teleconference_module_index && user[usrnum].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL) {
                     if (brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_ESCAPED ||
                             (brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING && brawl_current_player_data_ptr->kill_count < BRAWL_KILLS_UNTIL_OUTLAW_THRESHOLD)) {
                         if (current_meanest_player_kill_count < brawl_current_player_data_ptr->kill_count) {
@@ -2638,8 +2632,7 @@ void brawl_print_round_result(void) {
 
     for (usrnum = 0, brawl_current_player_data_ptr = brawl_player_data_array; usrnum < nterms; ++usrnum, ++brawl_current_player_data_ptr) {
         if (brawl_current_player_data_ptr->userid[0] != '\0' &&
-                user[usrnum].state == teleconference_module_index &&
-                user[usrnum].substt == 1 &&  // TODO: Move to constant or use existing one
+                user[usrnum].state == teleconference_module_index && user[usrnum].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 (brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_ESCAPED ||
                     (brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING && brawl_current_player_data_ptr->kill_count < BRAWL_KILLS_UNTIL_OUTLAW_THRESHOLD))) {
             prfmsg(
@@ -2657,8 +2650,7 @@ void brawl_print_round_result(void) {
 
     for (usrnum = 0, brawl_current_player_data_ptr = brawl_player_data_array; usrnum < nterms; ++usrnum, ++brawl_current_player_data_ptr) {
         if (brawl_current_player_data_ptr->userid[0] != '\0' &&
-                user[usrnum].state == teleconference_module_index &&
-                user[usrnum].substt == 1 &&  // TODO: Move to constant or use existing one
+                user[usrnum].state == teleconference_module_index && user[usrnum].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING &&
                 brawl_current_player_data_ptr->kill_count >= BRAWL_KILLS_UNTIL_OUTLAW_THRESHOLD) {
             prfmsg(
@@ -2700,8 +2692,7 @@ void brawl_handle_sheriff_arrives(void) {
 
     for (usrnum = 0, brawl_current_player_data_ptr = brawl_player_data_array; usrnum < nterms; ++usrnum, ++brawl_current_player_data_ptr) {
         if (brawl_current_player_data_ptr->userid[0] != '\0' &&
-                user[usrnum].state == teleconference_module_index &&
-                user[usrnum].substt == 1 &&  // TODO: Move to constant or use existing one
+                user[usrnum].state == teleconference_module_index && user[usrnum].substt == TELECONFERENCE_USER_SUBSTATE_NORMAL &&
                 (brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING || brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_ESCAPED)) {
 
             if (brawl_current_player_data_ptr->player_state == BRAWL_PLAYER_STATE_BRAWLING && brawl_current_player_data_ptr->kill_count >= BRAWL_KILLS_UNTIL_OUTLAW_THRESHOLD) {
